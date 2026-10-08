@@ -399,6 +399,14 @@ m_ChooseVictimAlwaysUsesNormal(false)
 {
 	st_CanAppCont = true;
 	st_LastCurrentFrame = st_CurrentFrame = 0;
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	// Slot 0 is reserved in each of these.
+	m_counters.resize(1);
+	m_counters[0].value = 0;
+	m_counters[0].isCountdownTimer = false;
+	m_flags.resize(1);
+	m_flags[0].value = false;
+	m_attackPriorityInfo.resize(1);
 	// By default, difficulty should be normal.
 	setGlobalDifficulty(DIFFICULTY_NORMAL);
 
@@ -4573,15 +4581,14 @@ void ScriptEngine::reset()
 	m_shownMPLocalDefeatWindow = FALSE;
 
 	Int i;
-	for (i=0; i<MAX_COUNTERS; i++) {
-		m_counters[i].value = 0;
-		m_counters[i].isCountdownTimer = false;
-		m_counters[i].name.clear();
-	}
-	for (i=0; i<MAX_FLAGS; i++) {
-		m_flags[i].value = false;
-		m_flags[i].name.clear();
-	}
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	m_counters.clear();
+	m_counters.resize(1);
+	m_counters[0].value = 0;
+	m_counters[0].isCountdownTimer = false;
+	m_flags.clear();
+	m_flags.resize(1);
+	m_flags[0].value = false;
 
 	m_breezeInfo.m_direction = PI/3;
 	m_breezeInfo.m_directionVec.x = Sin(m_breezeInfo.m_direction);
@@ -4695,8 +4702,9 @@ void ScriptEngine::reset()
 	ScriptList::reset(); // Deletes scripts loaded when the map was loaded.
 
 	// reset the attack priority data
-	for( i = 0; i < MAX_ATTACK_PRIORITIES; ++i )
-		m_attackPriorityInfo[ i ].reset();
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	m_attackPriorityInfo.clear();
+	m_attackPriorityInfo.resize(1);
 
 	// clear out all of our object counts.
 	for( i = 0; i < MAX_PLAYER_COUNT; ++i )
@@ -4712,18 +4720,17 @@ void ScriptEngine::reset()
 //-------------------------------------------------------------------------------------------------
 void ScriptEngine::newMap()
 {
-	m_numCounters = 1;
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
 	Int i;
-	for (i=0; i<MAX_COUNTERS; i++) {
-		m_counters[i].value = 0;
-		m_counters[i].isCountdownTimer = false;
-		m_counters[i].name.clear();
-	}
+	m_numCounters = 1;
+	m_counters.clear();
+	m_counters.resize(1);
+	m_counters[0].value = 0;
+	m_counters[0].isCountdownTimer = false;
 	m_numFlags = 1;
-	for (i=0; i<MAX_FLAGS; i++) {
-		m_flags[i].value = false;
-		m_flags[i].name.clear();
-	}
+	m_flags.clear();
+	m_flags.resize(1);
+	m_flags[0].value = false;
 	m_endGameTimer = -1;
 	m_closeWindowTimer = -1;
 #ifdef SPECIAL_SCRIPT_PROFILING
@@ -5432,14 +5439,20 @@ Int ScriptEngine::allocateCounter( const AsciiString& name)
 			return i;
 		}
 	}
+#if RETAIL_COMPATIBLE_CRC
 	DEBUG_ASSERTCRASH(m_numCounters<MAX_COUNTERS, ("Too many counters, failed to make '%s'.", name.str()));
-	if (m_numCounters < MAX_COUNTERS) {
-		m_counters[m_numCounters].name = name;
-		i = m_numCounters;
-		m_numCounters++;
-		return(i);
+	if (m_numCounters >= MAX_COUNTERS) {
+		return 0; // Shouldn't ever happen.
 	}
-	return 0; // Shouldn't ever happen.
+#endif
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	m_counters.push_back(TCounter());
+	m_counters.back().value = 0;
+	m_counters.back().isCountdownTimer = false;
+	m_counters.back().name = name;
+	i = m_numCounters;
+	m_numCounters++;
+	return(i);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -5570,14 +5583,19 @@ Int ScriptEngine::allocateFlag( const AsciiString& name)
 			return i;
 		}
 	}
+#if RETAIL_COMPATIBLE_CRC
 	DEBUG_ASSERTCRASH(m_numFlags < MAX_FLAGS, ("Too many flags, failed to make '%s'..", name.str()));
-	if (m_numFlags < MAX_FLAGS) {
-		m_flags[m_numFlags].name = name;
-		i = m_numFlags;
-		m_numFlags++;
-		return(i);
+	if (m_numFlags >= MAX_FLAGS) {
+		return 0; // Shouldn't ever happen.
 	}
-	return 0; // Shouldn't ever happen.
+#endif
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	m_flags.push_back(TFlag());
+	m_flags.back().value = false;
+	m_flags.back().name = name;
+	i = m_numFlags;
+	m_numFlags++;
+	return(i);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -5806,8 +5824,14 @@ AttackPriorityInfo * ScriptEngine::findAttackInfo(const AsciiString& name, Bool 
 			return &m_attackPriorityInfo[i];
 		}
 	}
+#if RETAIL_COMPATIBLE_CRC
 	if (addIfNotFound && m_numAttackInfo<MAX_ATTACK_PRIORITIES) {
-		m_attackPriorityInfo[m_numAttackInfo].friend_setName(name);
+#else
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	if (addIfNotFound) {
+#endif
+		m_attackPriorityInfo.push_back(AttackPriorityInfo());
+		m_attackPriorityInfo.back().friend_setName(name);
 		m_numAttackInfo++;
 		return &m_attackPriorityInfo[m_numAttackInfo-1];
 	}
@@ -8209,6 +8233,7 @@ void ScriptEngine::xfer( Xfer *xfer )
 	// counters
 	UnsignedShort countersSize = m_numCounters;
 	xfer->xferUnsignedShort( &countersSize );
+#if RETAIL_COMPATIBLE_CRC
 	if( countersSize > MAX_COUNTERS )
 	{
 
@@ -8216,6 +8241,18 @@ void ScriptEngine::xfer( Xfer *xfer )
 		throw SC_INVALID_DATA;
 
 	}
+#else
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	if( xfer->getXferMode() == XFER_SAVE && m_numCounters > 0xFFFF )
+	{
+
+		DEBUG_CRASH(( "ScriptEngine::xfer - Too many counters to save" ));
+		throw SC_INVALID_DATA;
+
+	}
+#endif
+	if( xfer->getXferMode() == XFER_LOAD )
+		m_counters.resize( countersSize > 0 ? countersSize : 1 );
 	for( i = 0; i < countersSize; ++i )
 	{
 
@@ -8232,10 +8269,15 @@ void ScriptEngine::xfer( Xfer *xfer )
 
 	// num counters
 	xfer->xferInt( &m_numCounters );
+#if !RETAIL_COMPATIBLE_CRC
+	if( xfer->getXferMode() == XFER_LOAD && m_numCounters != (Int)m_counters.size() )
+		throw SC_INVALID_DATA;
+#endif
 
 	// flags
 	UnsignedShort flagsSize = m_numFlags;
 	xfer->xferUnsignedShort( &flagsSize );
+#if RETAIL_COMPATIBLE_CRC
 	if( flagsSize > MAX_FLAGS )
 	{
 
@@ -8243,6 +8285,18 @@ void ScriptEngine::xfer( Xfer *xfer )
 		throw SC_INVALID_DATA;
 
 	}
+#else
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	if( xfer->getXferMode() == XFER_SAVE && m_numFlags > 0xFFFF )
+	{
+
+		DEBUG_CRASH(( "ScriptEngine::xfer - Too many flags to save" ));
+		throw SC_INVALID_DATA;
+
+	}
+#endif
+	if( xfer->getXferMode() == XFER_LOAD )
+		m_flags.resize( flagsSize > 0 ? flagsSize : 1 );
 	for( i = 0; i < flagsSize; ++i )
 	{
 
@@ -8256,10 +8310,15 @@ void ScriptEngine::xfer( Xfer *xfer )
 
 	// num flags
 	xfer->xferInt( &m_numFlags );
+#if !RETAIL_COMPATIBLE_CRC
+	if( xfer->getXferMode() == XFER_LOAD && m_numFlags != (Int)m_flags.size() )
+		throw SC_INVALID_DATA;
+#endif
 
 	// attack priority info
 	UnsignedShort attackPriorityInfoSize = m_numAttackInfo;
 	xfer->xferUnsignedShort( &attackPriorityInfoSize );
+#if RETAIL_COMPATIBLE_CRC
 	if( attackPriorityInfoSize > MAX_ATTACK_PRIORITIES )
 	{
 
@@ -8267,6 +8326,18 @@ void ScriptEngine::xfer( Xfer *xfer )
 		throw SC_INVALID_DATA;
 
 	}
+#else
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	if( xfer->getXferMode() == XFER_SAVE && m_numAttackInfo > 0xFFFF )
+	{
+
+		DEBUG_CRASH(( "ScriptEngine::xfer - Too many attack priority sets to save" ));
+		throw SC_INVALID_DATA;
+
+	}
+#endif
+	if( xfer->getXferMode() == XFER_LOAD )
+		m_attackPriorityInfo.resize( attackPriorityInfoSize > 0 ? attackPriorityInfoSize : 1 );
 	for( i = 0; i < attackPriorityInfoSize; ++i )
 	{
 
@@ -8277,6 +8348,10 @@ void ScriptEngine::xfer( Xfer *xfer )
 
 	// num attack info
 	xfer->xferInt( &m_numAttackInfo );
+#if !RETAIL_COMPATIBLE_CRC
+	if( xfer->getXferMode() == XFER_LOAD && m_numAttackInfo != (Int)m_attackPriorityInfo.size() )
+		throw SC_INVALID_DATA;
+#endif
 
 	// end game timers
 	xfer->xferInt( &m_endGameTimer );

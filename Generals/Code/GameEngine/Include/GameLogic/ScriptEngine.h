@@ -29,6 +29,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include "Common/GameType.h"
 #include "Common/GameMemory.h"
 #include "Common/STLTypedefs.h"
@@ -421,11 +423,12 @@ protected:
 protected:
 	ActionTemplate		m_actionTemplates[ScriptAction::NUM_ITEMS];
 	ConditionTemplate	m_conditionTemplates[Condition::NUM_ITEMS];
-	TCounter					m_counters[MAX_COUNTERS];
+	// TheSuperHackers @feature The General 08/10/2026 Removes the fixed limit of script counters, flags and attack priority sets when not retail compatible.
+	std::vector<TCounter>	m_counters;
 	Int								m_numCounters;
-	TFlag							m_flags[MAX_FLAGS];
+	std::vector<TFlag>	m_flags;
 	Int								m_numFlags;
-	AttackPriorityInfo m_attackPriorityInfo[MAX_ATTACK_PRIORITIES];
+	std::deque<AttackPriorityInfo>	m_attackPriorityInfo;	///< deque: elements must not move, AIUpdate holds pointers
 	Int								m_numAttackInfo;
 	Int								m_endGameTimer;
 	Int								m_closeWindowTimer;
