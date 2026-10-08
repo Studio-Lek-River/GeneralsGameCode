@@ -23,12 +23,14 @@ ctest --preset win32
 ```
 Visual Studio also lists the tests in its Test Explorer. A test executable can be run directly as well, for example with `--gtest_filter=AsciiString.*` or with `--gtest_break_on_failure` to stop in the debugger.
 
-Each game has one test executable, g_googletest for Generals and z_googletest for Zero Hour. It compiles the tests of all layers:
+Each game has one test executable, g_googletest for Generals and z_googletest for Zero Hour. It compiles the tests of all layers that apply to its game:
 
 | Sources | Tests |
 |---|---|
 | Tests/Google/Dependencies | Dependencies code. It must not use Core. |
 | Tests/Google/Core | Core game engine and libraries. |
+| Tests/Google/GeneralsMD | Zero Hour code. Only z_googletest compiles it. |
+| Tests/Google/Generals | Generals code. Only g_googletest compiles it. |
 
 Use C++ define RTS_GENERALS when adding game specific tests to Core.
 
